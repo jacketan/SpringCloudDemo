@@ -1,0 +1,34 @@
+server:
+  port: 7900
+spring:
+  application:
+    name: ProviderUser
+  jpa:
+    show-sql: true
+    generate-ddl: false
+    hibernate:
+      ddl-auto: none
+  datasource:
+    platform: h2
+    schema: classpath:schema.sql
+    data: classpath:data.sql
+  activemq:
+    broker-url: tcp://192.168.13.18:61616
+    in-memory: true
+    user: admin
+    password: admin
+# 日志配置
+logging:
+  level:
+    root: info
+    org.hibernate: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.type.descriptor.sql.BasicExtractor: TRACE
+    com.tanby: DEBUG
+# eureka配置
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true

@@ -1,0 +1,49 @@
+security:
+  basic:
+    enabled: false               # 开启基于HTTP basic的认证
+  user:
+    name: do1                  # 配置登录的账号
+    password: 123456          # 配置登录的密码
+spring:
+  application:
+    name: Apollo
+    datasourcename: usercenter
+  profiles:
+    active: dev
+  cloud:
+    consul:
+      discovery:
+        health-check-path: /actuator/health
+        health-check-interval: 15s
+        # 实例ID必须唯一
+        instance-id: ${spring.application.name}-${spring.cloud.client.ip-address}:${server.port}
+      config:
+        # 是否启动consul的配置管理，默认是true
+        enabled: false
+
+## 端口
+server:
+  port: 9011
+
+app:
+  id: CarCook
+apollo:
+  bootstrap:
+    enabled: true
+    namespaces: application,rabbitmq,elasticsearch,redis,mysql
+
+--- #dev环境
+spring:
+  profiles: dev
+  cloud:
+    consul:
+      port: 8500
+      host: localhost
+apollo:
+  meta: http://106.54.193.61:8080
+
+--- #prod环境
+spring:
+  profiles: qa
+apollo:
+  meta: http://139.199.174.139:18081

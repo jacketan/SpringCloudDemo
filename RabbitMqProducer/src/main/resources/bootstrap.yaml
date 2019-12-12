@@ -1,0 +1,29 @@
+server:
+   port: 8090
+spring: 
+   application: 
+      name: RabbitMqProducer
+   cloud: 
+      consul: 
+         config: 
+            aclToken: ""
+            dataKey: data
+            enabled: true
+            #format: YAML
+            watch: 
+               enabled: true
+         discovery: 
+            aclToken: ""
+            healthCheckInterval: 5s
+            healthCheckTimeout: 10s
+            instanceId: todo
+            preferIpAddress: true
+         host: 127.0.0.1
+         port: 8500
+
+   devtools:
+     restart:
+       #是否启用自动重启功能
+       enabled: true
+       #重启服务的文件夹目录
+       additional-paths: src/main/java

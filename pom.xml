@@ -7,7 +7,10 @@
 		<module>EurekaClient</module>
 		<module>ProviderUser</module>
         <module>ComsumerUser</module>
-    </modules>
+		<module>Apollo</module>
+        <module>RabbitMqProducer</module>
+		<module>RabbitMqConsumer</module>
+	</modules>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>

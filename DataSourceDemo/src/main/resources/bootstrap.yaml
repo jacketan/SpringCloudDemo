@@ -1,0 +1,23 @@
+server:
+   port: 8097
+spring: 
+   application: 
+      name: DataSourceDemo
+   cloud: 
+      consul: 
+         config: 
+            aclToken: ""
+            dataKey: data
+            enabled: true
+            format: properties
+            watch: 
+               enabled: true
+         discovery: 
+            aclToken: ""
+            healthCheckInterval: 5s
+            healthCheckTimeout: 10s
+            instanceId: DataSourceDemo
+            preferIpAddress: true
+         host: localhost
+         port: 8500
+

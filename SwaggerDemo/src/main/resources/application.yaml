@@ -1,0 +1,18 @@
+logging:
+  level:
+    java:
+      sql:
+        Connection: info
+        Statement: info
+    org:
+      springframework:
+        web: info
+      apache: 
+        commons: 
+          httpclient: error
+
+
+
+
+ 
+  

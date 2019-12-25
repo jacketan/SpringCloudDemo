@@ -10,6 +10,10 @@
 		<module>Apollo</module>
         <module>RabbitMqProducer</module>
 		<module>RabbitMqConsumer</module>
+		<module>SwaggerDemo</module>
+		<module>DataSourceDemo</module>
+		<module>SpringCloudStreamConsumer</module>
+		<module>SpringCloudStreamProvider</module>
 	</modules>
 	<parent>
 		<groupId>org.springframework.boot</groupId>

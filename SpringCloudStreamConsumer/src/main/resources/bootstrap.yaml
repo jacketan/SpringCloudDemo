@@ -1,0 +1,16 @@
+server:
+   port: 8091
+spring: 
+   application: 
+      name: SpringCloudStreamConsumer
+   cloud: 
+      consul:
+         discovery: 
+            aclToken: ""
+            healthCheckInterval: 5s
+            healthCheckTimeout: 10s
+            instanceId: SpringCloudStreamConsumer
+            preferIpAddress: true
+         host: 127.0.0.1
+         port: 8500
+

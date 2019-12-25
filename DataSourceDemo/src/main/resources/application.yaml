@@ -1,0 +1,35 @@
+logging:
+  level:
+    java:
+      sql:
+        Connection: info
+        Statement: info
+    org:
+      springframework:
+        web: info
+      apache: 
+        commons: 
+          httpclient: error
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-test-query: select 1
+      maximum-pool-size: 10
+    primary:
+      url: jdbc:mysql://106.54.193.61:3306/usercenter_gy_resource?characterEncoding=utf8&serverTimezone=UTC
+      username: root
+      password: 123456
+
+    secondary:
+      url: jdbc:mysql://106.54.193.61:13306/usercenter_gy_resource?characterEncoding=utf8&serverTimezone=UTC
+      username: root
+      password: 123456
+
+
+
+
+
+
+ 
+  

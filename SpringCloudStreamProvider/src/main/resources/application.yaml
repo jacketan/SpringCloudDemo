@@ -1,0 +1,39 @@
+logging:
+  level:
+    java:
+      sql:
+        Connection: info
+        Statement: info
+    org:
+      springframework:
+        web: info
+      apache: 
+        commons: 
+          httpclient: error
+
+spring:
+  cloud:
+    stream:
+      binders:
+        defaultRabbit:
+          type: rabbit
+          environment:
+            spring:
+              rabbitmq:
+                host: 106.54.193.61
+                port: 5672
+                username: admin
+                password: admin
+                virtual-host: /
+      bindings:
+        output:
+          destination: studyExchange
+          content-type: application/json
+          binder: defaultRabbit
+
+
+
+
+
+ 
+  

@@ -1,0 +1,23 @@
+server:
+   port: 8097
+spring: 
+   application: 
+      name: SwaggerDemo
+   cloud: 
+      consul: 
+         config: 
+            aclToken: ""
+            dataKey: data
+            enabled: true
+            format: properties
+            watch: 
+               enabled: true
+         discovery: 
+            aclToken: ""
+            healthCheckInterval: 5s
+            healthCheckTimeout: 10s
+            instanceId: swaggerdemo
+            preferIpAddress: true
+         host: localhost
+         port: 8500
+

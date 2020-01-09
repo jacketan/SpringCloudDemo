@@ -28,8 +28,14 @@ spring:
       bindings:
         output:
           destination: studyExchange
-          content-type: application/json
           binder: defaultRabbit
+      rabbit:
+        bindings:
+          output:
+            producer:
+              bindingRoutingKey: study-key
+              routingKeyExpression: "study-key"
+
 
 
 

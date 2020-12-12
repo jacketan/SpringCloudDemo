@@ -15,6 +15,13 @@ HELP.md
 .war
 .class
 
+# Log Files
+*.log
+**/*.log
+logs/
+*.log.*
+**/*.log.*
+
 ### IntelliJ IDEA ###
 .idea
 *.iws

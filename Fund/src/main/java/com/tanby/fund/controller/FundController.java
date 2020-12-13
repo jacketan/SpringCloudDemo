@@ -1,30 +1,44 @@
 package com.tanby.fund.controller;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.collection.ListUtil;
+import cn.hutool.core.math.MathUtil;
+import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.google.common.collect.Lists;
 import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import com.tanby.fund.model.FundEntity;
+import com.tanby.fund.model.FundExtendEntity;
+import com.tanby.fund.service.FundExtendService;
 import com.tanby.fund.service.FundService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.Wrapper;
 import java.util.*;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/fund")
+@Slf4j
 public class FundController {
 
     @Autowired
     private FundService service;
+
+    @Autowired
+    private FundExtendService extendService;
+
+    private static final Integer WEEK = 1;
+    private static final Integer MONTH = 2;
+    private static final Integer THREE_MONTH = 4;
+    private static final Integer SIX_MONTH = 8;
+    private static final Integer YEAR = 16;
 
     @PostMapping("/add")
     public void add() throws Exception {
@@ -73,21 +87,27 @@ public class FundController {
 
     @GetMapping("/rate/top")
     public List<FundEntity> getTopOfRate(@RequestParam(value = "days", defaultValue = "20") int days,
-                                         @RequestParam(value = "containWeek", required = false) boolean containWeek) {
-        List<FundEntity> monthList = service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getMonth).last(String.format("limit %d", days)));
-        List<FundEntity> threeMonthList = service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getThreeMonth).last(String.format("limit %d", days)));
-        List<FundEntity> sixMonthList = service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getSixMonth).last(String.format("limit %d", days)));
-        List<FundEntity> yearList = service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getYear).last(String.format("limit %d", days)));
-
+                                         @RequestParam(value = "code", defaultValue = "15") Integer code) {
         List<FundEntity> allList = Lists.newArrayList();
-        allList.addAll(monthList);
-        allList.addAll(threeMonthList);
-        allList.addAll(sixMonthList);
-        allList.addAll(yearList);
-        AtomicInteger limit = new AtomicInteger(4);
-        if (containWeek) {
-            List<FundEntity> weekList = service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getWeek).last(String.format("limit %d", days)));
-            yearList.addAll(weekList);
+        AtomicInteger limit = new AtomicInteger(0);
+        if ((code & WEEK) == WEEK) {
+            allList.addAll(service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getWeek).last(String.format("limit %d", days))));
+            limit.addAndGet(1);
+        }
+        if ((code & MONTH) == MONTH) {
+            allList.addAll(service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getMonth).last(String.format("limit %d", days))));
+            limit.addAndGet(1);
+        }
+        if ((code & THREE_MONTH) == THREE_MONTH) {
+            allList.addAll(service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getThreeMonth).last(String.format("limit %d", days))));
+            limit.addAndGet(1);
+        }
+        if ((code & SIX_MONTH) == SIX_MONTH) {
+            allList.addAll(service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getSixMonth).last(String.format("limit %d", days))));
+            limit.addAndGet(1);
+        }
+        if ((code & YEAR) == YEAR) {
+            allList.addAll(service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getYear).last(String.format("limit %d", days))));
             limit.addAndGet(1);
         }
 
@@ -99,4 +119,74 @@ public class FundController {
 
         return fundEntityList;
     }
+
+    @PostMapping("/net/sync")
+    public void syncNet() throws Exception {
+        Function<String, String> function = code -> String.format("http://fund.10jqka.com.cn/ifindRank/commonTypeAvgFqNet/%s.json", code);
+
+        List<FundEntity> fundEntities = service.list(Wrappers.lambdaQuery(new FundEntity()).select(FundEntity::getCode, FundEntity::getName));
+        int processors = Runtime.getRuntime().availableProcessors();
+
+        List<List<FundEntity>> list = CollUtil.split(fundEntities, fundEntities.size() / processors + 1);
+        List<Future> futures = Lists.newArrayList();
+        list.forEach(fundEntitieList -> {
+            futures.add(ThreadUtil.execAsync(() -> {
+                List<FundExtendEntity> extendEntities = Lists.newArrayList();
+                try {
+                    fundEntitieList.forEach(fundEntity -> {
+                        try {
+                            String body = Unirest.get(function.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
+                            if (JSONUtil.isJson(body)) {
+                                FundExtendEntity fundExtendEntity = new FundExtendEntity();
+                                fundExtendEntity.setCode(fundEntity.getCode());
+                                fundExtendEntity.setName(fundEntity.getName());
+                                fundExtendEntity.setNetJson(body);
+                                fundExtendEntity.setUpdateDate(new Date());
+
+                                // 计算连涨周数
+                                fundExtendEntity.setRiseWeek(calc(body));
+                                extendEntities.add(fundExtendEntity);
+                            }
+                            ThreadUtil.sleep(2000);
+                        } catch (UnirestException e) {
+                            log.error(e.getMessage(), e);
+                        }
+                    });
+
+                    extendService.saveOrUpdateBatch(extendEntities);
+                } catch (Exception e) {
+                    log.info("【保存异常的数据:{}】", extendEntities);
+                    log.error(e.getMessage(), e);
+                }
+            }));
+        });
+
+        for(Future future : futures) {
+            future.get();
+        }
+    }
+
+    private Integer calc(String body) {
+        JSONObject data = JSONUtil.parseObj(body);
+        List<String> dateList = data.keySet().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+        int week = 0;
+        int flag = 0;
+        for (int i = 0; i < dateList.size(); i += 5) {
+            try {
+                double result = data.getDouble(dateList.get(i)) - data.getDouble(dateList.get(i + 5));
+                int temp = result > 0 ? 1 : result < 0 ? -1 : 0;
+                if (i == 0) {
+                    flag = temp;
+                } else if (flag != temp) {
+                    break;
+                }
+                week++;
+            } catch (Exception e) {
+                return week * flag;
+            }
+
+        }
+        return week * flag;
+    }
+
 }

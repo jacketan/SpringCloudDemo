@@ -47,6 +47,7 @@
     <springProfile name="dev,test,local">
         <logger name="org.springframework.web" level="INFO"/>
         <logger name="org.springboot.sample" level="INFO"/>
+        <logger name="com.tanby" level="DEBUG"/>
     </springProfile>
 
     <!-- 生产环境 -->

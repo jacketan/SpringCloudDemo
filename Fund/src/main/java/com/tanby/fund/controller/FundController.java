@@ -1,14 +1,13 @@
 package com.tanby.fund.controller;
 
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.math.MathUtil;
 import cn.hutool.core.thread.ThreadUtil;
+import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.google.common.collect.Lists;
 import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.tanby.fund.model.FundEntity;
 import com.tanby.fund.model.FundExtendEntity;
 import com.tanby.fund.service.FundExtendService;
@@ -123,6 +122,8 @@ public class FundController {
     @PostMapping("/net/sync")
     public void syncNet() throws Exception {
         Function<String, String> function = code -> String.format("http://fund.10jqka.com.cn/ifindRank/commonTypeAvgFqNet/%s.json", code);
+        Function<String, String> dwjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsondwjz.json", code);
+        Function<String, String> ljjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsonljjz.json", code);
 
         List<FundEntity> fundEntities = service.list(Wrappers.lambdaQuery(new FundEntity()).select(FundEntity::getCode, FundEntity::getName));
         int processors = Runtime.getRuntime().availableProcessors();
@@ -134,23 +135,40 @@ public class FundController {
                 List<FundExtendEntity> extendEntities = Lists.newArrayList();
                 try {
                     fundEntitieList.forEach(fundEntity -> {
-                        try {
-                            String body = Unirest.get(function.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
-                            if (JSONUtil.isJson(body)) {
-                                FundExtendEntity fundExtendEntity = new FundExtendEntity();
-                                fundExtendEntity.setCode(fundEntity.getCode());
-                                fundExtendEntity.setName(fundEntity.getName());
-                                fundExtendEntity.setNetJson(body);
-                                fundExtendEntity.setUpdateDate(new Date());
+                        boolean isEx;
+                        do {
+                            isEx = false;
+                            try {
+                                String body = Unirest.get(function.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
+                                String dwjzBody = Unirest.get(dwjzFunction.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
+                                String ljjzBody = Unirest.get(ljjzFunction.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
 
-                                // 计算连涨周数
-                                fundExtendEntity.setRiseWeek(calc(body));
-                                extendEntities.add(fundExtendEntity);
+                                if (JSONUtil.isJson(body)) {
+                                    FundExtendEntity fundExtendEntity = new FundExtendEntity();
+                                    fundExtendEntity.setCode(fundEntity.getCode());
+                                    fundExtendEntity.setName(fundEntity.getName());
+                                    fundExtendEntity.setNetJson(body);
+                                    fundExtendEntity.setUpdateDate(new Date());
+
+                                    String dwJson = dwjzBody.substring(dwjzBody.indexOf("["));
+                                    String ljJson = ljjzBody.substring(ljjzBody.indexOf("["));
+
+                                    fundExtendEntity.setDwjzJson(dwJson);
+                                    fundExtendEntity.setLjjzJson(ljJson);
+
+                                    // 计算连涨周数
+                                    fundExtendEntity.setRiseWeek(calc(dwJson));
+                                    extendEntities.add(fundExtendEntity);
+                                } else {
+                                    isEx = true;
+                                }
+
+                            } catch (Exception e) {
+                                log.info("【发生异常时处理的基金数量:{}】", extendEntities.size());
+                                isEx = true;
+                                ThreadUtil.sleep(5 * 60 * 1000);
                             }
-                            ThreadUtil.sleep(2000);
-                        } catch (UnirestException e) {
-                            log.error(e.getMessage(), e);
-                        }
+                        } while (isEx);
                     });
 
                     extendService.saveOrUpdateBatch(extendEntities);
@@ -167,7 +185,14 @@ public class FundController {
     }
 
     private Integer calc(String body) {
+        if (JSONUtil.isJsonArray(body)) {
+            JSONArray jsonArray = JSONUtil.parseArray(body);
+            JSONObject object = JSONUtil.createObj();
+            jsonArray.forEach(data -> object.set(((JSONArray)data).getStr(0), ((JSONArray)data).get(1)));
+            body = object.toString();
+        }
         JSONObject data = JSONUtil.parseObj(body);
+
         List<String> dateList = data.keySet().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
         int week = 0;
         int flag = 0;

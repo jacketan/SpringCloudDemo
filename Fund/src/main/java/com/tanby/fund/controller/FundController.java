@@ -135,7 +135,7 @@ public class FundController {
         Function<String, String> function = code -> String.format("http://fund.10jqka.com.cn/ifindRank/commonTypeAvgFqNet/%s.json", code);
         Function<String, String> dwjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsondwjz.json", code);
         Function<String, String> ljjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsonljjz.json", code);
-        DateTime dateTime = DateUtil.offsetDay(new Date(), -1);
+        DateTime dateTime = DateUtil.offsetHour(new Date(), -12);
         String yesterday = dateTime.toString("yyyy-MM-dd HH:mm:ss");
 
         List<FundEntity> fundEntities = service.list(Wrappers.lambdaQuery(new FundEntity()).select(FundEntity::getCode, FundEntity::getName));
@@ -177,7 +177,7 @@ public class FundController {
                                     fundExtendEntity.setLjjzJson(ljJson);
 
                                     // 计算连涨周数
-                                    fundExtendEntity.setRiseWeek(calc(dwJson));
+                                    fundExtendEntity.setRiseWeek(calc(ljJson));
                                     extendEntities.add(fundExtendEntity);
                                 } else {
                                     throw new RuntimeException();

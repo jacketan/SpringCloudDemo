@@ -31,7 +31,7 @@ spring:
       port: 8500
       host: localhost
 apollo:
-  meta: http://192.168.1.5:8080
+  meta: http://192.168.2.5:8080
 
 --- #prod环境
 spring:

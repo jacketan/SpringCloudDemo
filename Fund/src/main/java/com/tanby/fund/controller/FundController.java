@@ -1,7 +1,11 @@
 package com.tanby.fund.controller;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateField;
+import cn.hutool.core.date.DateTime;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.thread.ThreadUtil;
+import cn.hutool.core.util.ReUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -12,7 +16,9 @@ import com.tanby.fund.model.FundEntity;
 import com.tanby.fund.model.FundExtendEntity;
 import com.tanby.fund.service.FundExtendService;
 import com.tanby.fund.service.FundService;
+import com.tanby.fund.utils.ExpireUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,6 +53,9 @@ public class FundController {
         JSONObject jsonObject = JSONUtil.parseObj(dataStr);
         JSONObject dataObject = jsonObject.getJSONObject("data");
         JSONObject data = dataObject.getJSONObject("data");
+        if (data.isEmpty()) {
+            return;
+        }
 
         // 清空数据
         service.clearAll();
@@ -124,17 +133,26 @@ public class FundController {
         Function<String, String> function = code -> String.format("http://fund.10jqka.com.cn/ifindRank/commonTypeAvgFqNet/%s.json", code);
         Function<String, String> dwjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsondwjz.json", code);
         Function<String, String> ljjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsonljjz.json", code);
+        DateTime dateTime = DateUtil.offsetDay(new Date(), -1);
+        String yesterday = dateTime.toString("yyyy-MM-dd HH:mm:ss");
 
         List<FundEntity> fundEntities = service.list(Wrappers.lambdaQuery(new FundEntity()).select(FundEntity::getCode, FundEntity::getName));
+        List<FundExtendEntity> fundExtendEntities = extendService.list(Wrappers.lambdaQuery(new FundExtendEntity()).select(FundExtendEntity::getCode).ge(FundExtendEntity::getUpdateDate, yesterday));
+        List<String> codes = fundExtendEntities.stream().map(FundExtendEntity::getCode).collect(Collectors.toList());
+        fundEntities = fundEntities.stream().filter(fundEntity -> !codes.contains(fundEntity.getCode())).collect(Collectors.toList());
         int processors = Runtime.getRuntime().availableProcessors();
 
         List<List<FundEntity>> list = CollUtil.split(fundEntities, fundEntities.size() / processors + 1);
         List<Future> futures = Lists.newArrayList();
+        ExpireUtils expireUtils = ExpireUtils.build(DateField.HOUR, 1);
         list.forEach(fundEntitieList -> {
             futures.add(ThreadUtil.execAsync(() -> {
                 List<FundExtendEntity> extendEntities = Lists.newArrayList();
                 try {
-                    fundEntitieList.forEach(fundEntity -> {
+                    for (FundEntity fundEntity : fundEntitieList) {
+                        if (expireUtils.isExpire()) {
+                            break;
+                        }
                         boolean isEx;
                         do {
                             isEx = false;
@@ -143,7 +161,7 @@ public class FundController {
                                 String dwjzBody = Unirest.get(dwjzFunction.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
                                 String ljjzBody = Unirest.get(ljjzFunction.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
 
-                                if (JSONUtil.isJson(body)) {
+                                if ((JSONUtil.isJson(body) || "".equals(body)) && ReUtil.contains("^var", dwjzBody) && ReUtil.contains("^var", ljjzBody)) {
                                     FundExtendEntity fundExtendEntity = new FundExtendEntity();
                                     fundExtendEntity.setCode(fundEntity.getCode());
                                     fundExtendEntity.setName(fundEntity.getName());
@@ -160,7 +178,7 @@ public class FundController {
                                     fundExtendEntity.setRiseWeek(calc(dwJson));
                                     extendEntities.add(fundExtendEntity);
                                 } else {
-                                    isEx = true;
+                                    throw new RuntimeException();
                                 }
 
                             } catch (Exception e) {
@@ -169,9 +187,11 @@ public class FundController {
                                 ThreadUtil.sleep(5 * 60 * 1000);
                             }
                         } while (isEx);
-                    });
+                    }
 
-                    extendService.saveOrUpdateBatch(extendEntities);
+                    if (!extendEntities.isEmpty()) {
+                        extendService.saveOrUpdateBatch(extendEntities);
+                    }
                 } catch (Exception e) {
                     log.info("【保存异常的数据:{}】", extendEntities);
                     log.error(e.getMessage(), e);

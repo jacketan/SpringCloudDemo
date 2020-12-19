@@ -9,7 +9,9 @@ import cn.hutool.core.util.ReUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.google.common.collect.Lists;
 import com.mashape.unirest.http.Unirest;
 import com.tanby.fund.model.FundEntity;
@@ -18,7 +20,6 @@ import com.tanby.fund.service.FundExtendService;
 import com.tanby.fund.service.FundService;
 import com.tanby.fund.utils.ExpireUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -98,24 +99,25 @@ public class FundController {
                                          @RequestParam(value = "code", defaultValue = "15") Integer code) {
         List<FundEntity> allList = Lists.newArrayList();
         AtomicInteger limit = new AtomicInteger(0);
+        Function<SFunction<FundEntity,?>,Wrapper<FundEntity>> function = (orderBy) -> Wrappers.lambdaQuery(new FundEntity()).in(FundEntity::getTypeName, "混合型", "股票型").orderByDesc(orderBy).last(String.format("limit %d", days));
         if ((code & WEEK) == WEEK) {
-            allList.addAll(service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getWeek).last(String.format("limit %d", days))));
+            allList.addAll(service.list(function.apply(FundEntity::getWeek)));
             limit.addAndGet(1);
         }
         if ((code & MONTH) == MONTH) {
-            allList.addAll(service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getMonth).last(String.format("limit %d", days))));
+            allList.addAll(service.list(function.apply(FundEntity::getMonth)));
             limit.addAndGet(1);
         }
         if ((code & THREE_MONTH) == THREE_MONTH) {
-            allList.addAll(service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getThreeMonth).last(String.format("limit %d", days))));
+            allList.addAll(service.list(function.apply(FundEntity::getThreeMonth)));
             limit.addAndGet(1);
         }
         if ((code & SIX_MONTH) == SIX_MONTH) {
-            allList.addAll(service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getSixMonth).last(String.format("limit %d", days))));
+            allList.addAll(service.list(function.apply(FundEntity::getSixMonth)));
             limit.addAndGet(1);
         }
         if ((code & YEAR) == YEAR) {
-            allList.addAll(service.list(Wrappers.lambdaQuery(new FundEntity()).orderByDesc(FundEntity::getYear).last(String.format("limit %d", days))));
+            allList.addAll(service.list(function.apply(FundEntity::getYear)));
             limit.addAndGet(1);
         }
 
@@ -129,7 +131,7 @@ public class FundController {
     }
 
     @PostMapping("/net/sync")
-    public void syncNet() throws Exception {
+    public Integer syncNet() throws Exception {
         Function<String, String> function = code -> String.format("http://fund.10jqka.com.cn/ifindRank/commonTypeAvgFqNet/%s.json", code);
         Function<String, String> dwjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsondwjz.json", code);
         Function<String, String> ljjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsonljjz.json", code);
@@ -196,12 +198,15 @@ public class FundController {
                     log.info("【保存异常的数据:{}】", extendEntities);
                     log.error(e.getMessage(), e);
                 }
+                return extendEntities.size();
             }));
         });
 
+        int size = 0;
         for(Future future : futures) {
-            future.get();
+            size += (Integer) future.get();
         }
+        return size;
     }
 
     private Integer calc(String body) {

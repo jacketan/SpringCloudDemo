@@ -23,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -207,6 +209,27 @@ public class FundController {
             size += (Integer) future.get();
         }
         return size;
+    }
+
+    @GetMapping("/week/rate")
+    public List<String> getWeekRate(@RequestParam("code") String code) {
+        FundExtendEntity entity = extendService.getById(code);
+        if (Objects.isNull(entity)) {
+            return Lists.newArrayList();
+        }
+        String ljjzJson = entity.getLjjzJson();
+        List<Double> jzList = JSONUtil.parseArray(ljjzJson).stream().map(week -> ((JSONArray) week).getDouble(1)).collect(Collectors.toList());
+        jzList = CollUtil.reverse(jzList);
+
+        List<String> rateList = Lists.newArrayList();
+        for (int i = 0; i < jzList.size() - 5; i=i+5) {
+            double result = (jzList.get(i) - jzList.get(i+5)) / jzList.get(i+5);
+            NumberFormat format = DecimalFormat.getPercentInstance();
+            format.setMinimumFractionDigits(2);
+            String rate = format.format(result);
+            rateList.add(rate);
+        }
+        return rateList;
     }
 
     private Integer calc(String body) {

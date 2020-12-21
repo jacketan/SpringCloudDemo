@@ -41,15 +41,15 @@ public class FundExtendEntity implements Serializable {
 	@ApiModelProperty(value = "累积净值", example = "累积净值")
 	private String ljjzJson;
 	/**
-	 * 基金所以净值数据
-	 */
-    @ApiModelProperty(value = "基金所以净值数据", example = "测试基金所以净值数据001")
-    private String netJson;
-	/**
 	 * 连涨周数
 	 */
     @ApiModelProperty(value = "连涨周数", example = "1")
     private Integer riseWeek;
+	/**
+	 * 主题
+	 */
+	@ApiModelProperty(value = "theme", notes = "主题")
+    private String theme;
 	/**
 	 * 更新时间
 	 */

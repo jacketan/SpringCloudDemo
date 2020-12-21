@@ -9,6 +9,7 @@ import cn.hutool.core.util.ReUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson.JSONPath;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
@@ -134,9 +135,9 @@ public class FundController {
 
     @PostMapping("/net/sync")
     public Integer syncNet() throws Exception {
-        Function<String, String> function = code -> String.format("http://fund.10jqka.com.cn/ifindRank/commonTypeAvgFqNet/%s.json", code);
         Function<String, String> dwjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsondwjz.json", code);
         Function<String, String> ljjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsonljjz.json", code);
+        Function<String, String> themeFunction = code -> String.format("http://fund.10jqka.com.cn/data/client/myfund/%s", code);
         DateTime dateTime = DateUtil.offsetHour(new Date(), -12);
         String yesterday = dateTime.toString("yyyy-MM-dd HH:mm:ss");
 
@@ -161,15 +162,14 @@ public class FundController {
                         do {
                             isEx = false;
                             try {
-                                String body = Unirest.get(function.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
                                 String dwjzBody = Unirest.get(dwjzFunction.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
                                 String ljjzBody = Unirest.get(ljjzFunction.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
+                                String themeBody = Unirest.get(themeFunction.apply(fundEntity.getCode())).header("Content-Type", "application/json").asString().getBody();
 
-                                if ((JSONUtil.isJson(body) || "".equals(body)) && ReUtil.contains("^var", dwjzBody) && ReUtil.contains("^var", ljjzBody)) {
+                                if (ReUtil.contains("^var", dwjzBody) && ReUtil.contains("^var", ljjzBody) && JSONUtil.isJson(themeBody)) {
                                     FundExtendEntity fundExtendEntity = new FundExtendEntity();
                                     fundExtendEntity.setCode(fundEntity.getCode());
                                     fundExtendEntity.setName(fundEntity.getName());
-                                    fundExtendEntity.setNetJson(body);
                                     fundExtendEntity.setUpdateDate(new Date());
 
                                     String dwJson = dwjzBody.substring(dwjzBody.indexOf("["));
@@ -177,6 +177,7 @@ public class FundController {
 
                                     fundExtendEntity.setDwjzJson(dwJson);
                                     fundExtendEntity.setLjjzJson(ljJson);
+                                    fundExtendEntity.setTheme(JSONPath.read(themeBody, "$.data[0].themeList[*].field_name").toString());
 
                                     // 计算连涨周数
                                     fundExtendEntity.setRiseWeek(calc(ljJson));

@@ -14,6 +14,7 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.mashape.unirest.http.Unirest;
 import com.tanby.fund.model.FundEntity;
 import com.tanby.fund.model.FundExtendEntity;
@@ -213,7 +214,7 @@ public class FundController {
     }
 
     @GetMapping("/week/rate")
-    public List<String> getWeekRate(@RequestParam("code") String code) {
+    public Object getWeekRate(@RequestParam("code") String code) {
         FundExtendEntity entity = extendService.getById(code);
         if (Objects.isNull(entity)) {
             return Lists.newArrayList();
@@ -223,14 +224,44 @@ public class FundController {
         jzList = CollUtil.reverse(jzList);
 
         List<String> rateList = Lists.newArrayList();
+        double max = 0;
+        double min = 0;
+        List<Integer> upList = Lists.newArrayList();
+        List<Integer> downList = Lists.newArrayList();
+        int count = 0;
+        double lastResult = 0;
+        NumberFormat format = DecimalFormat.getPercentInstance();
+        format.setMinimumFractionDigits(2);
         for (int i = 0; i < jzList.size() - 5; i=i+5) {
             double result = (jzList.get(i) - jzList.get(i+5)) / jzList.get(i+5);
-            NumberFormat format = DecimalFormat.getPercentInstance();
-            format.setMinimumFractionDigits(2);
+            // 计算最大最小值
+            if (max < result) {
+                max = result;
+            } else if (min > result) {
+                min = result;
+            }
+            // 判断符号位是否变更
+            if (i != 0 && lastResult * result < 0) {
+                if (lastResult > 0) {
+                    upList.add(count);
+                } else if (lastResult < 0) {
+                    downList.add(count);
+                }
+                count = 1;
+            } else {
+                count++;
+            }
+            lastResult = result;
             String rate = format.format(result);
             rateList.add(rate);
         }
-        return rateList;
+        Map<String, Object> data = Maps.newLinkedHashMap();
+        data.put("max", format.format(max));
+        data.put("min", format.format(min));
+        data.put("up", CollUtil.sort(upList, Comparator.reverseOrder()).get(0));
+        data.put("down", CollUtil.sort(downList, Comparator.reverseOrder()).get(0));
+        data.put("list", rateList);
+        return data;
     }
 
     private Integer calc(String body) {

@@ -22,6 +22,7 @@ import com.tanby.fund.service.FundExtendService;
 import com.tanby.fund.service.FundService;
 import com.tanby.fund.utils.ExpireUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -155,6 +156,7 @@ public class FundController {
             futures.add(ThreadUtil.execAsync(() -> {
                 List<FundExtendEntity> extendEntities = Lists.newArrayList();
                 try {
+                    fund:
                     for (FundEntity fundEntity : fundEntitieList) {
                         if (expireUtils.isExpire()) {
                             break;
@@ -183,6 +185,8 @@ public class FundController {
                                     // 计算连涨周数
                                     fundExtendEntity.setRiseWeek(calc(ljJson));
                                     extendEntities.add(fundExtendEntity);
+                                } else if (StringUtils.isBlank(dwjzBody) || StringUtils.isBlank(ljjzBody)) {
+                                    continue fund;
                                 } else {
                                     throw new RuntimeException();
                                 }

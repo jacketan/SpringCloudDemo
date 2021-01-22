@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: 8090
 spring:
   application:
     name: FastDFSDemo
@@ -14,7 +14,7 @@ fdfs:
     width: 150
     height: 150
   tracker-list:            #TrackerList参数,支持多个
-    - 192.168.1.5:22122
+    - 192.168.2.5:22122
   pool:
     #从池中借出的对象的最大数目（配置为-1表示不限制）
     max-total: -1
@@ -24,5 +24,4 @@ fdfs:
     max-total-per-key: 50
     #每个key对应的连接池最大空闲连接数
     max-idle-per-key: 10
-    #每个key对应的连接池最小空闲连接数
-    max_idle_per_key: 5
+    min-idle-per-key: 5

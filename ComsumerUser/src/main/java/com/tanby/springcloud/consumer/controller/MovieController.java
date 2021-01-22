@@ -19,4 +19,5 @@ public class MovieController {
         ResponseEntity<User> forEntity = restTemplate.getForEntity("http://localhost:7900/getUserById/" + id, User.class);
         return forEntity.getBody();
     }
+
 }

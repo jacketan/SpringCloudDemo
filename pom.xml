@@ -17,6 +17,8 @@
         <module>FastDFSDemo</module>
 		<module>Consul</module>
         <module>Fund</module>
+        <module>TestDemo</module>
+        <module>ExcelDemo</module>
     </modules>
 	<parent>
 		<groupId>org.springframework.boot</groupId>

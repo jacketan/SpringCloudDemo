@@ -55,6 +55,7 @@
         <logger name="org.springframework.web" level="ERROR"/>
         <logger name="org.springboot.sample" level="ERROR"/>
         <logger name="com.alibaba.druid" level="ERROR"/>
+        <logger name="com.tanby" level="INFO"/>
     </springProfile>
 
     <!-- 日志输出级别 -->

@@ -218,12 +218,16 @@ public class FundController {
     }
 
     @GetMapping("/week/rate")
-    public Object getWeekRate(@RequestParam("code") String code) {
+    public Object getWeekRate(@RequestParam("code") String code,
+                              @RequestParam(value = "isLj", defaultValue = "true") boolean isLj) {
         FundExtendEntity entity = extendService.getById(code);
         if (Objects.isNull(entity)) {
             return Lists.newArrayList();
         }
         String ljjzJson = entity.getLjjzJson();
+        if (!isLj) {
+            ljjzJson = entity.getDwjzJson();
+        }
         List<Double> jzList = JSONUtil.parseArray(ljjzJson).stream().map(week -> ((JSONArray) week).getDouble(1)).collect(Collectors.toList());
         jzList = CollUtil.reverse(jzList);
 

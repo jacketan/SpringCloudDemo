@@ -18,7 +18,9 @@ import com.google.common.collect.Maps;
 import com.mashape.unirest.http.Unirest;
 import com.tanby.fund.model.FundEntity;
 import com.tanby.fund.model.FundExtendEntity;
+import com.tanby.fund.model.FundNewEntity;
 import com.tanby.fund.service.FundExtendService;
+import com.tanby.fund.service.FundNewService;
 import com.tanby.fund.service.FundService;
 import com.tanby.fund.utils.ExpireUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +43,9 @@ public class FundController {
 
     @Autowired
     private FundService service;
+
+    @Autowired
+    private FundNewService newService;
 
     @Autowired
     private FundExtendService extendService;
@@ -97,6 +102,51 @@ public class FundController {
         });
         // 保持最后的数据
         service.saveBatch(fundEntityList);
+    }
+
+    @PostMapping("/add/new")
+    public void addNew() throws Exception {
+        String url = "http://fund.ijijin.cn/data/Net/info/all_F009_desc_0_0_1_9999_0_0_0_jsonp_g.html";
+        String body = Unirest.get(url).header("Content-Type", "text/html;charset=gbk").asString().getBody();
+        String dataStr = body.substring(2, body.length() - 1);
+        JSONObject jsonObject = JSONUtil.parseObj(dataStr);
+        JSONObject dataObject = jsonObject.getJSONObject("data");
+        JSONObject data = dataObject.getJSONObject("data");
+        if (data.isEmpty()) {
+            return;
+        }
+
+        // 清空数据
+        newService.clearAll();
+        List<FundNewEntity> fundEntityList = new ArrayList<>(1000);
+        data.forEach((key, value) -> {
+            JSONObject object = (JSONObject) value;
+            FundNewEntity fundEntity = new FundNewEntity();
+            fundEntity.setCode(object.getStr("code"));
+            fundEntity.setName(object.getStr("name"));
+            fundEntity.setType(object.getStr("type"));
+            fundEntity.setUpdateTime(new Date());
+
+            fundEntity.setNet(object.getDouble("net"));
+            fundEntity.setTotalnet(object.getDouble("totalnet"));
+            fundEntity.setWeek(object.getDouble("F003N_FUND33"));
+            fundEntity.setNearYear(object.getDouble("F005"));
+            fundEntity.setMonth(object.getDouble("F008"));
+            fundEntity.setThreeMonth(object.getDouble("F009"));
+            fundEntity.setSixMonth(object.getDouble("F010"));
+            fundEntity.setYear(object.getDouble("F011"));
+            fundEntity.setTwoYear(object.getDouble("F014N_FUND33"));
+            fundEntity.setThreeYear(object.getDouble("F015N_FUND33"));
+            fundEntity.setAllTime(object.getDouble("F012"));
+
+            fundEntityList.add(fundEntity);
+            if (fundEntityList.size() == 1000) {
+                newService.saveBatch(fundEntityList);
+                fundEntityList.clear();
+            }
+        });
+        // 保持最后的数据
+        newService.saveBatch(fundEntityList);
     }
 
     @GetMapping("/rate/top")

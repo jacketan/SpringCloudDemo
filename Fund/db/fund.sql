@@ -64,4 +64,28 @@ CREATE TABLE `t_fund_extend`  (
   INDEX `index_rise`(`rise_week`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
+CREATE TABLE `t_fund_new` (
+  `id` bigint NOT NULL COMMENT '主键',
+  `code` varchar(16) DEFAULT NULL COMMENT '基金代码',
+  `name` varchar(128) DEFAULT NULL COMMENT '基金名称',
+  `type` varchar(16) DEFAULT NULL COMMENT '基金类型',
+  `net` double DEFAULT NULL COMMENT '最新市净值',
+  `totalnet` double DEFAULT NULL COMMENT '最新累计净值',
+  `week` double DEFAULT NULL COMMENT '近一周',
+  `month` double DEFAULT NULL COMMENT '近一月',
+  `three_month` double DEFAULT NULL COMMENT '近三个月',
+  `six_month` double DEFAULT NULL COMMENT '近6个月',
+  `year` double DEFAULT NULL COMMENT '近一年',
+  `two_year` double DEFAULT NULL COMMENT '近两年',
+  `three_year` double DEFAULT NULL COMMENT '近三年',
+  `near_year` double DEFAULT NULL COMMENT '近一年',
+  `all_time` double DEFAULT NULL COMMENT '成立以来',
+  `update_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index_code` (`code`),
+  KEY `index_year` (`year`) USING BTREE,
+  KEY `index_week` (`week`) USING BTREE,
+  KEY `index_month` (`month`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

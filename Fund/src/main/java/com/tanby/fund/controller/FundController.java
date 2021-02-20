@@ -185,6 +185,42 @@ public class FundController {
         return fundEntityList;
     }
 
+    @GetMapping("/rate/top/new")
+    public List<FundNewEntity> getTopOfRateNew(@RequestParam(value = "days", defaultValue = "20") int days,
+                                         @RequestParam(value = "code", defaultValue = "15") Integer code) {
+        List<FundNewEntity> allList = Lists.newArrayList();
+        AtomicInteger limit = new AtomicInteger(0);
+        Function<SFunction<FundNewEntity,?>,Wrapper<FundNewEntity>> function = (orderBy) -> Wrappers.lambdaQuery(new FundNewEntity()).in(FundNewEntity::getType, "hhx", "gpx").orderByDesc(orderBy).last(String.format("limit %d", days));
+        if ((code & WEEK) == WEEK) {
+            allList.addAll(newService.list(function.apply(FundNewEntity::getWeek)));
+            limit.addAndGet(1);
+        }
+        if ((code & MONTH) == MONTH) {
+            allList.addAll(newService.list(function.apply(FundNewEntity::getMonth)));
+            limit.addAndGet(1);
+        }
+        if ((code & THREE_MONTH) == THREE_MONTH) {
+            allList.addAll(newService.list(function.apply(FundNewEntity::getThreeMonth)));
+            limit.addAndGet(1);
+        }
+        if ((code & SIX_MONTH) == SIX_MONTH) {
+            allList.addAll(newService.list(function.apply(FundNewEntity::getSixMonth)));
+            limit.addAndGet(1);
+        }
+        if ((code & YEAR) == YEAR) {
+            allList.addAll(newService.list(function.apply(FundNewEntity::getYear)));
+            limit.addAndGet(1);
+        }
+
+        Map<String, List<FundNewEntity>> collect = allList.stream().collect(Collectors.groupingBy(FundNewEntity::getCode));
+        List<FundNewEntity> fundEntityList = collect.entrySet().stream()
+                .filter(entry -> entry.getValue().size() >= limit.get())
+                .flatMap(entry -> entry.getValue().stream().distinct())
+                .collect(Collectors.toList());
+
+        return fundEntityList;
+    }
+
     @PostMapping("/net/sync")
     public Integer syncNet() throws Exception {
         Function<String, String> dwjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsondwjz.json", code);

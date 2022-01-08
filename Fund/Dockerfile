@@ -5,7 +5,7 @@ ARG SERVER_PORT=9003
 ARG PROFILES="prod"
 ARG LOG_FILE="/app/app.log"
 ARG WORK_PATH="/app"
-ARG JVM_OPTS="-Xmx4096m -Xms2048m -XX:ReservedCodeCacheSize=240m -XX:+UseConcMarkSweepGC -XX:+HeapDumpOnOutOfMemoryError -XX:-OmitStackTraceInFastThrow"
+ARG JVM_OPTS="-Xmx6144m -Xms2048m -XX:ReservedCodeCacheSize=240m -XX:+UseG1GC"
 #服务端口
 ENV SERVER_PORT $SERVER_PORT
 #启动环境配置

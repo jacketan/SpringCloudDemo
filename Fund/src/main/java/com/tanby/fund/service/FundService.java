@@ -3,6 +3,8 @@ package com.tanby.fund.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tanby.fund.model.FundEntity;
 
+import java.util.List;
+
 /**
  * 
  *
@@ -13,5 +15,7 @@ import com.tanby.fund.model.FundEntity;
 public interface FundService extends IService<FundEntity> {
 
     void clearAll();
+
+    List<FundEntity> querySyncList();
 }
 

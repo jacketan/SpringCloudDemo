@@ -2,8 +2,6 @@ package com.tanby.fund.controller;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateField;
-import cn.hutool.core.date.DateTime;
-import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.ReUtil;
 import cn.hutool.json.JSONArray;
@@ -226,13 +224,8 @@ public class FundController {
         Function<String, String> dwjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsondwjz.json", code);
         Function<String, String> ljjzFunction = code -> String.format("http://fund.10jqka.com.cn/%s/json/jsonljjz.json", code);
         Function<String, String> themeFunction = code -> String.format("http://fund.10jqka.com.cn/data/client/myfund/%s", code);
-        DateTime dateTime = DateUtil.offsetHour(new Date(), -12);
-        String yesterday = dateTime.toString("yyyy-MM-dd HH:mm:ss");
 
-        List<FundEntity> fundEntities = service.list(Wrappers.lambdaQuery(new FundEntity()).select(FundEntity::getCode, FundEntity::getName));
-        List<FundExtendEntity> fundExtendEntities = extendService.list(Wrappers.lambdaQuery(new FundExtendEntity()).select(FundExtendEntity::getCode).ge(FundExtendEntity::getUpdateDate, yesterday));
-        List<String> codes = fundExtendEntities.stream().map(FundExtendEntity::getCode).collect(Collectors.toList());
-        fundEntities = fundEntities.stream().filter(fundEntity -> !codes.contains(fundEntity.getCode())).collect(Collectors.toList());
+        List<FundEntity> fundEntities = service.querySyncList();
         int processors = Runtime.getRuntime().availableProcessors();
 
         List<List<FundEntity>> list = CollUtil.split(fundEntities, fundEntities.size() / processors + 1);
@@ -348,6 +341,11 @@ public class FundController {
             lastResult = result;
             String rate = format.format(result);
             rateList.add(rate);
+        }
+        if (lastResult > 0) {
+            upList.add(count);
+        } else {
+            downList.add(count);
         }
         Map<String, Object> data = Maps.newLinkedHashMap();
         data.put("max", format.format(max));

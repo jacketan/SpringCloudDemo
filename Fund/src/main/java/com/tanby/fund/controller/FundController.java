@@ -1,9 +1,14 @@
 package com.tanby.fund.controller;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.convert.Convert;
 import cn.hutool.core.date.DateField;
+import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.thread.ThreadUtil;
+import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ReUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -98,8 +103,10 @@ public class FundController {
                 fundEntityList.clear();
             }
         });
-        // 保持最后的数据
+        // 保存最后的数据
         service.saveBatch(fundEntityList);
+
+        addFromEastMoney();
     }
 
     @PostMapping("/add/new")
@@ -143,8 +150,78 @@ public class FundController {
                 fundEntityList.clear();
             }
         });
-        // 保持最后的数据
+        // 保存最后的数据
         newService.saveBatch(fundEntityList);
+
+        addFromEastMoney();
+    }
+
+    @PostMapping("/eastMoney/add")
+    public void addFromEastMoney() throws Exception{
+        String url = "http://fund.eastmoney.com/data/rankhandler.aspx";
+        String[] types = {"gp", "hh"};
+        List<String> codes = service.queryLackCode();
+        List<FundNewEntity> fundEntityList = new ArrayList<>(1000);
+        for (String type : types) {
+            Map<String, Object> param = buildParam(type);
+            String body = Unirest.get(url).header("Referer", "http://fund.eastmoney.com/data/fundranking.html").queryString(param).asString().getBody();
+            String dataStr = ReUtil.get("\\[.*\\]", body, 0);
+            JSONArray dataList = JSONUtil.parseArray(dataStr);
+            dataList.forEach(o -> {
+                String data = JSONUtil.toJsonStr(o);
+                String[] fundDetails = StrUtil.removeAll(data, "\"").split("\\,");
+                if (ArrayUtil.isEmpty(fundDetails) || !codes.contains(fundDetails[0])) {
+                    return;
+                }
+                FundNewEntity fundEntity = new FundNewEntity();
+                fundEntity.setCode(fundDetails[0]);
+                fundEntity.setName(fundDetails[1]);
+                fundEntity.setType(type + "x");
+                fundEntity.setUpdateTime(new Date());
+
+                fundEntity.setNet(Convert.toDouble(fundDetails[4]));
+                fundEntity.setTotalnet(Convert.toDouble(fundDetails[5]));
+                fundEntity.setWeek(Convert.toDouble(fundDetails[7]));
+                fundEntity.setNearYear(Convert.toDouble(fundDetails[14]));
+                fundEntity.setMonth(Convert.toDouble(fundDetails[8]));
+                fundEntity.setThreeMonth(Convert.toDouble(fundDetails[9]));
+                fundEntity.setSixMonth(Convert.toDouble(fundDetails[10]));
+                fundEntity.setYear(Convert.toDouble(fundDetails[11]));
+                fundEntity.setTwoYear(Convert.toDouble(fundDetails[12]));
+                fundEntity.setThreeYear(Convert.toDouble(fundDetails[13]));
+                fundEntity.setAllTime(Convert.toDouble(fundDetails[15]));
+
+                fundEntityList.add(fundEntity);
+                if (fundEntityList.size() == 1000) {
+                    newService.saveBatch(fundEntityList);
+                    fundEntityList.clear();
+                }
+            });
+        }
+
+        // 保存最后的数据
+        newService.saveBatch(fundEntityList);
+    }
+
+    private Map<String, Object> buildParam(String type) {
+        Map<String, Object> param = Maps.newHashMap();
+        param.put("op", "ph");
+        param.put("dt", "kf");
+        param.put("ft", type);
+        param.put("rs", "");
+        param.put("gs", "0");
+        param.put("sc", "6yzf");
+        param.put("st", "desc");
+        param.put("sd", DateUtil.format(new Date(), DatePattern.NORM_DATE_PATTERN));
+        param.put("ed", DateUtil.format(new Date(), DatePattern.NORM_DATE_PATTERN));
+        param.put("qdii", "");
+        param.put("tabSubtype", ",,,,,");
+        param.put("pi", "1");
+        param.put("pn", "10000");
+        param.put("dx", "1");
+        param.put("v", "0.8715405289402929");
+
+        return param;
     }
 
     @GetMapping("/rate/top")

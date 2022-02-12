@@ -17,5 +17,7 @@ public interface FundService extends IService<FundEntity> {
     void clearAll();
 
     List<FundEntity> querySyncList();
+
+    List<String> queryLackCode();
 }
 

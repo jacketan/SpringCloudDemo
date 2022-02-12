@@ -21,4 +21,9 @@ public class FundServiceImpl extends ServiceImpl<FundDao, FundEntity> implements
     public List<FundEntity> querySyncList() {
         return this.getBaseMapper().querySyncList();
     }
+
+    @Override
+    public List<String> queryLackCode() {
+        return this.getBaseMapper().queryLackCode();
+    }
 }

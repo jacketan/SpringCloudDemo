@@ -48,7 +48,7 @@
 		<springcloud.version>Greenwich.SR2</springcloud.version>
 		<apollo.version>1.4.0</apollo.version>
 		<mybatisplus.version>3.2.0</mybatisplus.version>
-		<mysql.version>8.0.19</mysql.version>
+		<mysql.version>8.0.28</mysql.version>
 		<druid.version>1.1.10</druid.version>
 		<quartz.version>2.3.0</quartz.version>
 		<commons.lang.version>2.6</commons.lang.version>

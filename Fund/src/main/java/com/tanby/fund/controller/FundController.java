@@ -29,6 +29,7 @@ import com.tanby.fund.utils.ExpireUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.DecimalFormat;
@@ -52,6 +53,9 @@ public class FundController {
 
     @Autowired
     private FundExtendService extendService;
+
+    @Autowired
+    private ThreadPoolTaskExecutor executor;
 
     private static final Integer WEEK = 1;
     private static final Integer MONTH = 2;
@@ -107,6 +111,8 @@ public class FundController {
         service.saveBatch(fundEntityList);
 
         addFromEastMoney();
+
+        System.gc();
     }
 
     @PostMapping("/add/new")
@@ -154,6 +160,8 @@ public class FundController {
         newService.saveBatch(fundEntityList);
 
         addFromEastMoney();
+
+        System.gc();
     }
 
     @PostMapping("/eastMoney/add")
@@ -170,7 +178,7 @@ public class FundController {
             dataList.forEach(o -> {
                 String data = JSONUtil.toJsonStr(o);
                 String[] fundDetails = StrUtil.removeAll(data, "\"").split("\\,");
-                if (ArrayUtil.isEmpty(fundDetails) || !codes.contains(fundDetails[0])) {
+                if (ArrayUtil.isEmpty(fundDetails) || codes.contains(fundDetails[0])) {
                     return;
                 }
                 FundNewEntity fundEntity = new FundNewEntity();
@@ -309,7 +317,7 @@ public class FundController {
         List<Future> futures = Lists.newArrayList();
         ExpireUtils expireUtils = ExpireUtils.build(DateField.HOUR, 1);
         list.forEach(fundEntitieList -> {
-            futures.add(ThreadUtil.execAsync(() -> {
+            futures.add(executor.submit(() -> {
                 List<FundExtendEntity> extendEntities = Lists.newArrayList();
                 try {
                     fund:
@@ -366,11 +374,16 @@ public class FundController {
             }));
         });
 
-        int size = 0;
-        for(Future future : futures) {
-            size += (Integer) future.get();
+        try {
+            int size = 0;
+            for(Future future : futures) {
+                size += (Integer) future.get();
+            }
+
+            return size;
+        } finally {
+            System.gc();
         }
-        return size;
     }
 
     @GetMapping("/week/rate")

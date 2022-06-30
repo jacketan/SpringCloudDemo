@@ -21,9 +21,9 @@ public interface FundDao extends BaseMapper<FundEntity> {
     @Delete("truncate table t_fund")
     void clearAll();
 
-    @Select(" SELECT temp.`code`, temp.`name` FROM ( SELECT a.`code`, a.`name`, a.update_time AS time FROM t_fund_new a LEFT JOIN t_fund_extend b ON a.`code` = b.`code` WHERE b.`code` IS NULL UNION ( SELECT a.`code`, a.`name`, a.update_date AS time FROM t_fund_extend a LEFT JOIN t_fund_new b ON a.`code` = b.`code` WHERE ( b.type IN ('hhx', 'gpx') OR b.`code` IS NULL ) AND update_date < DATE_ADD(now(), INTERVAL - 12 HOUR) ORDER BY update_date )) temp ORDER BY temp.time ")
+    @Select(" SELECT temp.`code`, temp.`name` FROM ( SELECT a.`code`, a.`name`, a.update_time AS time FROM t_fund_new a LEFT JOIN t_fund_extend b ON a.`code` = b.`code` WHERE b.`code` IS NULL UNION ( SELECT a.`code`, a.`name`, a.update_date AS time FROM t_fund_extend a LEFT JOIN t_fund_new b ON a.`code` = b.`code` WHERE ( b.type IN ('hhx', 'gpx') OR b.`code` IS NULL ) AND update_date < DATE_ADD(now(), INTERVAL - 12 HOUR) ORDER BY update_date )) temp ORDER BY temp.time LIMIT 3000 ")
     List<FundEntity> querySyncList();
 
-    @Select("SELECT a.`code` from t_fund_extend a LEFT JOIN t_fund_new b ON a.`code` = b.`code` where b.id is null")
+    @Select("SELECT b.`code` from t_fund_new b ")
     List<String> queryLackCode();
 }

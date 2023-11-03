@@ -167,7 +167,7 @@ public class FundController {
     @PostMapping("/eastMoney/add")
     public void addFromEastMoney() throws Exception{
         String url = "http://fund.eastmoney.com/data/rankhandler.aspx";
-        String[] types = {"gp", "hh"};
+        String[] types = {"zs", "gp", "hh"};
         List<String> codes = service.queryLackCode();
         List<FundNewEntity> fundEntityList = new ArrayList<>(1000);
         for (String type : types) {
@@ -218,9 +218,9 @@ public class FundController {
         param.put("ft", type);
         param.put("rs", "");
         param.put("gs", "0");
-        param.put("sc", "6yzf");
+        param.put("sc", "1nzf");
         param.put("st", "desc");
-        param.put("sd", DateUtil.format(new Date(), DatePattern.NORM_DATE_PATTERN));
+        param.put("sd", DateUtil.format(DateUtil.offsetMonth(new Date(), -12), DatePattern.NORM_DATE_PATTERN));
         param.put("ed", DateUtil.format(new Date(), DatePattern.NORM_DATE_PATTERN));
         param.put("qdii", "");
         param.put("tabSubtype", ",,,,,");

@@ -32,6 +32,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
@@ -347,7 +349,7 @@ public class FundController {
                                     fundExtendEntity.setTheme(JSONPath.read(themeBody, "$.data[0].themeList[*].field_name").toString());
 
                                     // 计算连涨周数
-                                    fundExtendEntity.setRiseWeek(calc(ljJson));
+                                    calc(ljJson, fundExtendEntity);
                                     extendEntities.add(fundExtendEntity);
                                 } else if (StringUtils.isBlank(dwjzBody) || StringUtils.isBlank(ljjzBody)) {
                                     continue fund;
@@ -446,7 +448,7 @@ public class FundController {
         return data;
     }
 
-    private Integer calc(String body) {
+    private void calc(String body, FundExtendEntity fundExtendEntity) {
         if (JSONUtil.isJsonArray(body)) {
             JSONArray jsonArray = JSONUtil.parseArray(body);
             JSONObject object = JSONUtil.createObj();
@@ -456,6 +458,31 @@ public class FundController {
         JSONObject data = JSONUtil.parseObj(body);
 
         List<String> dateList = data.keySet().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+        // 计算周连涨数
+        fundExtendEntity.setRiseWeek(calcWeek(data, dateList));
+        // 计算10、15、20、30天平均数与当前最新值的浮动率
+        fundExtendEntity.setTen(calcAvgRate(data, dateList, 10));
+        fundExtendEntity.setFifteen(calcAvgRate(data, dateList, 15));
+        fundExtendEntity.setTwenty(calcAvgRate(data, dateList, 20));
+        fundExtendEntity.setThirty(calcAvgRate(data, dateList, 30));
+    }
+
+    private BigDecimal calcAvgRate(JSONObject data, List<String> dateList, int days) {
+        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal now = BigDecimal.ZERO;
+        for (int i = 0; i < days; i++) {
+            BigDecimal dayVal = BigDecimal.valueOf(data.getDouble(dateList.get(i)));
+            if (i == 0) {
+                now = dayVal;
+            }
+            total = total.add(dayVal);
+        }
+        BigDecimal avg = total.divide(BigDecimal.valueOf(days), 2, RoundingMode.HALF_UP);
+        // 计算当前值减去平均值后的升降比率
+        return now.subtract(avg).divide(avg, 2, RoundingMode.HALF_UP);
+    }
+
+    private Integer calcWeek(JSONObject data, List<String> dateList) {
         int week = 0;
         int flag = 0;
         for (int i = 0; i < dateList.size(); i += 5) {

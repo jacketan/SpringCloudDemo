@@ -8,6 +8,7 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -55,4 +56,12 @@ public class FundExtendEntity implements Serializable {
 	 */
     @ApiModelProperty(value = "更新时间", example = "2018-08-08")
     private Date updateDate;
+
+	private BigDecimal ten;
+
+	private BigDecimal fifteen;
+
+	private BigDecimal twenty;
+
+	private BigDecimal thirty;
 }

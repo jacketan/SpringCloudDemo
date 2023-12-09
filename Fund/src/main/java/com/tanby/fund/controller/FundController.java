@@ -5,6 +5,7 @@ import cn.hutool.core.convert.Convert;
 import cn.hutool.core.date.DateField;
 import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.math.MathUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ReUtil;
@@ -470,6 +471,9 @@ public class FundController {
     private BigDecimal calcAvgRate(JSONObject data, List<String> dateList, int days) {
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal now = BigDecimal.ZERO;
+        if (dateList.size() < days) {
+            days = dateList.size();
+        }
         for (int i = 0; i < days; i++) {
             BigDecimal dayVal = BigDecimal.valueOf(data.getDouble(dateList.get(i)));
             if (i == 0) {
